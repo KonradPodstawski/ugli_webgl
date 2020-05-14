@@ -1,0 +1,12 @@
+[package]
+name = "ugli_engine"
+version = "0.1.0"
+authors = ["KonradP <konradpodstawskii@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+ugli-webgl = "*"
+stdweb = "*"
+stdweb-derive="*"
+serde = "*"
+serde_derive = "*"
