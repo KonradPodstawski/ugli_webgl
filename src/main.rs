@@ -27,9 +27,9 @@ mod Shaders;
 pub mod matrix;
 
 fn main() {
-    let (mut _ctx, mut _canvas) = Engine::init();
+    Engine::init();
 
-    Shaders::init_shader(_ctx, _canvas);
+    //Shaders::init_shader(_ctx, _canvas);
 
     Engine::end();
 }
