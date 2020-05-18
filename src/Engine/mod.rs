@@ -3,6 +3,7 @@ extern crate ugli_webgl;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use stdweb::console;
 use stdweb::unstable::TryInto;
 use stdweb::web::{document, window, IEventTarget, IHtmlElement, IParentNode, TypedArray};
 
@@ -37,6 +38,7 @@ struct Engine {
     index_buffer: WebGLBuffer,
     test_one: i32,
     // TESTOWE ZMIENNE
+    img: ImageElement,
     url: &'static str,
 }
 
@@ -82,20 +84,14 @@ impl BasicEngine<Rc<RefCell<Self>>> for Engine {
         self.context
             .draw_elements(gl::TRIANGLES, 6, gl::UNSIGNED_SHORT, 0);
 
-        let ref tex = self.context.create_texture();
-        self.context.bind_texture(gl::TEXTURE_2D, tex.as_ref());
-
-        let img = ImageElement::new();
-        img.set_src(&self.url);
-
-        self.context.bind_texture(gl::TEXTURE_2D, tex.as_ref());
+        //self.context.bind_texture(gl::TEXTURE_2D, tex.as_ref());
         self.context.tex_image2_d_1(
             gl::TEXTURE_2D,
             0,
             gl::RGBA as i32,
             gl::RGBA,
             gl::UNSIGNED_BYTE,
-            img,
+            &self.img,
         );
 
         self.context.generate_mipmap(gl::TEXTURE_2D);
@@ -263,6 +259,12 @@ pub fn init() {
 
     let url = "sprite.png";
 
+    let ref tex = context.create_texture();
+    context.bind_texture(gl::TEXTURE_2D, tex.as_ref());
+
+    let img = ImageElement::new();
+    img.set_src(&url);
+
     let state = Rc::new(RefCell::new(Engine {
         mov_matrix,
         view_matrix,
@@ -273,6 +275,7 @@ pub fn init() {
         m_matrix,
         index_buffer,
         test_one: 500,
+        img,
         url,
     }));
 
