@@ -18,6 +18,8 @@ use ugli_webgl::WebGLBuffer;
 
 use ugli_webgl::WebGLUniformLocation;
 
+mod sprite;
+
 macro_rules! enclose {
     ( ($( $x:ident ),*) $y:expr ) => {
         {
@@ -37,9 +39,11 @@ struct Engine {
     m_matrix: WebGLUniformLocation,
     index_buffer: WebGLBuffer,
     test_one: i32,
+
+    obj: sprite::Sprite,
     // TESTOWE ZMIENNE
-    img: ImageElement,
-    url: &'static str,
+    // img: ImageElement,
+    // url: &'static str,
 }
 
 trait BasicEngine<T> {
@@ -81,29 +85,32 @@ impl BasicEngine<Rc<RefCell<Self>>> for Engine {
             .uniform_matrix4fv(Some(&self.m_matrix), false, &self.mov_matrix[..], 0, 0);
         self.context
             .bind_buffer(gl::ELEMENT_ARRAY_BUFFER, Some(&self.index_buffer));
-        self.context
-            .draw_elements(gl::TRIANGLES, 6, gl::UNSIGNED_SHORT, 0);
 
-        //self.context.bind_texture(gl::TEXTURE_2D, tex.as_ref());
-        self.context.tex_image2_d_1(
-            gl::TEXTURE_2D,
-            0,
-            gl::RGBA as i32,
-            gl::RGBA,
-            gl::UNSIGNED_BYTE,
-            &self.img,
-        );
+        self.obj.update(&self.context);
 
-        self.context.generate_mipmap(gl::TEXTURE_2D);
+        // self.context
+        //     .draw_elements(gl::TRIANGLES, 6, gl::UNSIGNED_SHORT, 0);
 
-        self.context
-            .tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-        self.context
-            .tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-        self.context
-            .tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-        self.context
-            .tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+        // //self.context.bind_texture(gl::TEXTURE_2D, tex.as_ref());
+        // self.context.tex_image2_d_1(
+        //     gl::TEXTURE_2D,
+        //     0,
+        //     gl::RGBA as i32,
+        //     gl::RGBA,
+        //     gl::UNSIGNED_BYTE,
+        //     &self.img,
+        // );
+
+        // self.context.generate_mipmap(gl::TEXTURE_2D);
+
+        // self.context
+        //     .tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+        // self.context
+        //     .tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+        // self.context
+        //     .tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+        // self.context
+        //     .tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
 
         window().request_animation_frame(move |_time| {
             _rc.borrow_mut().update(_rc.clone());
@@ -259,11 +266,13 @@ pub fn init() {
 
     let url = "sprite.png";
 
-    let ref tex = context.create_texture();
-    context.bind_texture(gl::TEXTURE_2D, tex.as_ref());
+    // let ref tex = context.create_texture();
+    // context.bind_texture(gl::TEXTURE_2D, tex.as_ref());
 
-    let img = ImageElement::new();
-    img.set_src(&url);
+    // let img = ImageElement::new();
+    // img.set_src(&url);
+
+    let (obj, context) = sprite::Sprite::new(context, url);
 
     let state = Rc::new(RefCell::new(Engine {
         mov_matrix,
@@ -275,8 +284,9 @@ pub fn init() {
         m_matrix,
         index_buffer,
         test_one: 500,
-        img,
-        url,
+        // img,
+        // url,
+        obj,
     }));
 
     state.borrow_mut().init(state.clone());
