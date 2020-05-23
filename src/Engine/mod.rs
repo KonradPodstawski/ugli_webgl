@@ -16,8 +16,8 @@ use stdweb::web::html_element::CanvasElement;
 use ugli_webgl::WebGL2RenderingContext as gl;
 use ugli_webgl::WebGLBuffer;
 
+use crate::units;
 use ugli_webgl::WebGLUniformLocation;
-
 mod sprite;
 
 macro_rules! enclose {
@@ -38,9 +38,10 @@ struct Engine {
     v_matrix: WebGLUniformLocation,
     m_matrix: WebGLUniformLocation,
     index_buffer: WebGLBuffer,
-    test_one: i32,
+    test_one: f32,
 
     obj: sprite::Sprite,
+    obj2: sprite::Sprite,
     // TESTOWE ZMIENNE
     // img: ImageElement,
     // url: &'static str,
@@ -68,12 +69,12 @@ impl BasicEngine<Rc<RefCell<Self>>> for Engine {
 
     fn update(&mut self, _rc: Rc<RefCell<Self>>) {
         let (w, h) = (self.canvas.width(), self.canvas.height());
-        let proj_matrix = get_projection(20., (w as f32) / (h as f32), 1., 100.);
+        let proj_matrix = get_projection(10., (w as f32) / (h as f32), 1., 200.);
 
-        self.test_one -= 1;
+        self.test_one += 0.05;
 
         self.context
-            .viewport(-self.test_one, -150, w as i32, h as i32);
+            .viewport(w as i32 * -1, h as i32 * -1, w as i32 * 2, h as i32 * 2);
 
         self.context
             .clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -81,36 +82,18 @@ impl BasicEngine<Rc<RefCell<Self>>> for Engine {
             .uniform_matrix4fv(Some(&self.p_matrix), false, &proj_matrix[..], 0, 0);
         self.context
             .uniform_matrix4fv(Some(&self.v_matrix), false, &self.view_matrix[..], 0, 0);
-        self.context
-            .uniform_matrix4fv(Some(&self.m_matrix), false, &self.mov_matrix[..], 0, 0);
+        // self.context
+        //     .uniform_matrix4fv(Some(&self.m_matrix), false, &self.mov_matrix[..], 0, 0);
         self.context
             .bind_buffer(gl::ELEMENT_ARRAY_BUFFER, Some(&self.index_buffer));
 
         self.obj.update(&self.context);
-
-        // self.context
-        //     .draw_elements(gl::TRIANGLES, 6, gl::UNSIGNED_SHORT, 0);
-
-        // //self.context.bind_texture(gl::TEXTURE_2D, tex.as_ref());
-        // self.context.tex_image2_d_1(
-        //     gl::TEXTURE_2D,
-        //     0,
-        //     gl::RGBA as i32,
-        //     gl::RGBA,
-        //     gl::UNSIGNED_BYTE,
-        //     &self.img,
-        // );
-
-        // self.context.generate_mipmap(gl::TEXTURE_2D);
-
-        // self.context
-        //     .tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-        // self.context
-        //     .tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-        // self.context
-        //     .tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-        // self.context
-        //     .tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+        let vec = units::Vector2D {
+            x: 1.,
+            y: self.test_one,
+        };
+        self.obj.set_position_sprite(vec);
+        self.obj2.update(&self.context);
 
         window().request_animation_frame(move |_time| {
             _rc.borrow_mut().update(_rc.clone());
@@ -144,8 +127,7 @@ pub fn init() {
     }));
 
     let vertices =
-        TypedArray::<f32>::from(&[0.5, 0.5, 0., 0.5, -0.5, 0., -0.5, -0.5, 0., -0.5, 0.5, 0.][..])
-            .buffer();
+        TypedArray::<f32>::from(&[1., 1., 0., 1., -1., 0., -1., -1., 0., -1., 1., 0.][..]).buffer();
 
     let colors =
         TypedArray::<f32>::from(&[0., 3., 0., 0., 3., 0., 0., 3., 0., 0., 3., 0.][..]).buffer();
@@ -230,6 +212,9 @@ pub fn init() {
     let m_matrix = context
         .get_uniform_location(&shader_program, "Mmatrix")
         .unwrap();
+    let m_matrix_test = context
+        .get_uniform_location(&shader_program, "Mmatrix")
+        .unwrap();
     let _textur = context
         .get_uniform_location(&shader_program, "tex")
         .unwrap();
@@ -255,16 +240,18 @@ pub fn init() {
     context.use_program(Some(&shader_program));
 
     let mov_matrix = [
-        1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 1., 1., 0., 5.,
+        1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 1., 1., 0., 20.,
     ];
+
     let mut view_matrix = [
-        1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
+        1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 1., 1.,
     ];
 
     // translating z
-    view_matrix[14] -= 8.; //zoom
+    view_matrix[14] -= 20.; //zoom
 
     let url = "sprite.png";
+    let url2 = "sprite.png";
 
     // let ref tex = context.create_texture();
     // context.bind_texture(gl::TEXTURE_2D, tex.as_ref());
@@ -272,7 +259,10 @@ pub fn init() {
     // let img = ImageElement::new();
     // img.set_src(&url);
 
-    let (obj, context) = sprite::Sprite::new(context, url);
+    let (mut obj, context) = sprite::Sprite::new(context, url, m_matrix.clone());
+    let (obj2, context) = sprite::Sprite::new(context, url2, m_matrix.clone());
+    let vec = units::Vector2D { x: 1., y: 1. };
+    obj.set_position_sprite(vec);
 
     let state = Rc::new(RefCell::new(Engine {
         mov_matrix,
@@ -283,10 +273,11 @@ pub fn init() {
         v_matrix,
         m_matrix,
         index_buffer,
-        test_one: 500,
+        test_one: 1.,
         // img,
         // url,
         obj,
+        obj2,
     }));
 
     state.borrow_mut().init(state.clone());

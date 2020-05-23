@@ -5,8 +5,9 @@ extern crate stdweb;
 extern crate stdweb_derive;
 
 mod engine;
-// mod Shaders;
 pub mod matrix;
+pub mod shaders;
+pub mod units;
 
 fn main() {
     engine::init();
