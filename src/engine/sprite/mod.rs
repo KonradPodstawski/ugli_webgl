@@ -32,27 +32,30 @@ pub struct Sprite {
     p_matrix: ugli_webgl::WebGLUniformLocation,
     v_matrix: ugli_webgl::WebGLUniformLocation,
     m_matrix: ugli_webgl::WebGLUniformLocation,
-    ms_matrix: ugli_webgl::WebGLUniformLocation,
     mov_matrix: [f32; 16],
 }
-static mut TEST: f32 = 0.;
+
 impl Sprite {
-    pub fn new(
-        context: gl,
-        url: &'static str,
-        m_matrix: ugli_webgl::WebGLUniformLocation,
-    ) -> (Self, gl) {
-        let ref tex = context.create_texture();
-        context.bind_texture(gl::TEXTURE_2D, tex.as_ref());
-
+    pub fn new(context: gl, url: &'static str) -> (Self, gl, ugli_webgl::WebGLProgram) {
+        let (context, vertex_buffer, color_buffer, index_buffer, texture_coord_buffer) =
+            bind_buffers(context);
         let shader_program = init_shaders(&context);
-        let (p_matrix, v_matrix, ms_matrix) = init_matrix(&context, &shader_program);
+        let (p_matrix, v_matrix, m_matrix) = init_matrix(&context, &shader_program);
+        shader_buffers(
+            &context,
+            &shader_program,
+            &vertex_buffer,
+            &color_buffer,
+            &texture_coord_buffer,
+        );
 
-        let (context, vertex_buffer, color_buffer, index_buffer) = bind_buffers(context);
         let mov_matrix = [
             1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 1., 5., 0., 7.,
         ];
         // let w = units::Vector2D { x: 4, y: 4 };
+
+        let ref tex = context.create_texture();
+        context.bind_texture(gl::TEXTURE_2D, tex.as_ref());
 
         let img = ImageElement::new();
         img.set_src(&url);
@@ -67,10 +70,10 @@ impl Sprite {
                 p_matrix,
                 v_matrix,
                 m_matrix,
-                ms_matrix,
                 mov_matrix,
             },
             context,
+            shader_program,
         )
     }
 
@@ -108,7 +111,7 @@ impl Sprite {
     }
 }
 
-fn bind_buffers(context: gl) -> (gl, Buffer, Buffer, Buffer) {
+fn bind_buffers(context: gl) -> (gl, Buffer, Buffer, Buffer, Buffer) {
     let vertices =
         TypedArray::<f32>::from(&[1., 1., 0., 1., -1., 0., -1., -1., 0., -1., 1., 0.][..]).buffer();
 
@@ -140,7 +143,13 @@ fn bind_buffers(context: gl) -> (gl, Buffer, Buffer, Buffer) {
     context.bind_buffer(gl::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
     context.buffer_data_1(gl::ELEMENT_ARRAY_BUFFER, Some(&indices), gl::STATIC_DRAW);
 
-    (context, vertex_buffer, color_buffer, index_buffer)
+    (
+        context,
+        vertex_buffer,
+        color_buffer,
+        index_buffer,
+        texture_coord_buffer,
+    )
 }
 
 fn init_matrix(
@@ -182,4 +191,30 @@ fn init_shaders(context: &gl) -> ugli_webgl::WebGLProgram {
     context.link_program(&shader_program);
 
     shader_program
+}
+
+fn shader_buffers(
+    context: &gl,
+    shader_program: &ugli_webgl::WebGLProgram,
+    vertex_buffer: &Buffer,
+    color_buffer: &Buffer,
+    texture_coord_buffer: &Buffer,
+) {
+    context.bind_buffer(gl::ARRAY_BUFFER, Some(&vertex_buffer));
+    let position = context.get_attrib_location(&shader_program, "position") as u32;
+    context.vertex_attrib_pointer(position, 3, gl::FLOAT, false, 0, 0);
+
+    // Position
+    context.enable_vertex_attrib_array(position);
+    context.bind_buffer(gl::ARRAY_BUFFER, Some(&color_buffer));
+    let color = context.get_attrib_location(&shader_program, "color") as u32;
+    context.vertex_attrib_pointer(color, 3, gl::FLOAT, false, 0, 0);
+
+    // Color
+    context.enable_vertex_attrib_array(color);
+
+    context.bind_buffer(gl::ARRAY_BUFFER, Some(&texture_coord_buffer));
+    let uv = context.get_attrib_location(&shader_program, "a_uv") as u32;
+    context.vertex_attrib_pointer(uv, 3, gl::FLOAT, false, 0, 0);
+    context.enable_vertex_attrib_array(uv);
 }

@@ -30,21 +30,15 @@ macro_rules! enclose {
 }
 
 struct Engine {
-    mov_matrix: [f32; 16],
     view_matrix: [f32; 16],
     canvas: CanvasElement,
     context: gl,
     p_matrix: WebGLUniformLocation,
     v_matrix: WebGLUniformLocation,
-    m_matrix: WebGLUniformLocation,
-    index_buffer: WebGLBuffer,
     test_one: f32,
 
     obj: sprite::Sprite,
-    obj2: sprite::Sprite,
-    // TESTOWE ZMIENNE
-    // img: ImageElement,
-    // url: &'static str,
+    // obj2: sprite::Sprite,
 }
 
 trait BasicEngine<T> {
@@ -57,14 +51,7 @@ impl BasicEngine<Rc<RefCell<Self>>> for Engine {
     fn init(&mut self, _rc: Rc<RefCell<Self>>) {
         self.context.enable(gl::BLEND);
         self.context.blend_func(gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
-        //self.context.blend_func_separate(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA, gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
-        //self.context.depth_func(gl::LEQUAL);
         self.context.clear_color(0.5, 0.5, 0.5, 0.9);
-        //self.context.clear_depth(1.0);
-
-        // //==============================================TEST================================================//
-
-        //==================================================================================================//
     }
 
     fn update(&mut self, _rc: Rc<RefCell<Self>>) {
@@ -82,10 +69,6 @@ impl BasicEngine<Rc<RefCell<Self>>> for Engine {
             .uniform_matrix4fv(Some(&self.p_matrix), false, &proj_matrix[..], 0, 0);
         self.context
             .uniform_matrix4fv(Some(&self.v_matrix), false, &self.view_matrix[..], 0, 0);
-        // self.context
-        //     .uniform_matrix4fv(Some(&self.m_matrix), false, &self.mov_matrix[..], 0, 0);
-        self.context
-            .bind_buffer(gl::ELEMENT_ARRAY_BUFFER, Some(&self.index_buffer));
 
         self.obj.update(&self.context);
         let vec = units::Vector2D {
@@ -93,7 +76,7 @@ impl BasicEngine<Rc<RefCell<Self>>> for Engine {
             y: self.test_one,
         };
         self.obj.set_position_sprite(vec);
-        self.obj2.update(&self.context);
+        // self.obj2.update(&self.context);
 
         window().request_animation_frame(move |_time| {
             _rc.borrow_mut().update(_rc.clone());
@@ -126,119 +109,6 @@ pub fn init() {
         canvas.set_height(canvas.offset_height() as u32);
     }));
 
-    let vertices =
-        TypedArray::<f32>::from(&[1., 1., 0., 1., -1., 0., -1., -1., 0., -1., 1., 0.][..]).buffer();
-
-    let colors =
-        TypedArray::<f32>::from(&[0., 3., 0., 0., 3., 0., 0., 3., 0., 0., 3., 0.][..]).buffer();
-
-    let indices = TypedArray::<u16>::from(&[0, 1, 2, 0, 2, 3][..]).buffer();
-
-    let texture_coordinates =
-        TypedArray::<f32>::from(&[1., 0., 0., 1., 1., 0., 0., 1., 0., 0., 0., 0.][..]).buffer();
-
-    let texture_coord_buffer = context.create_buffer().unwrap();
-    context.bind_buffer(gl::ARRAY_BUFFER, Some(&texture_coord_buffer));
-    context.buffer_data_1(
-        gl::ARRAY_BUFFER,
-        Some(&texture_coordinates),
-        gl::STATIC_DRAW,
-    );
-
-    // Create and store data into vertex buffer
-    let vertex_buffer = context.create_buffer().unwrap();
-    context.bind_buffer(gl::ARRAY_BUFFER, Some(&vertex_buffer));
-    context.buffer_data_1(gl::ARRAY_BUFFER, Some(&vertices), gl::STATIC_DRAW);
-
-    // Create and store data into color buffer
-    let color_buffer = context.create_buffer().unwrap();
-    context.bind_buffer(gl::ARRAY_BUFFER, Some(&color_buffer));
-    context.buffer_data_1(gl::ARRAY_BUFFER, Some(&colors), gl::STATIC_DRAW);
-
-    // Create and store data into index buffer
-    let index_buffer = context.create_buffer().unwrap();
-    context.bind_buffer(gl::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
-    context.buffer_data_1(gl::ELEMENT_ARRAY_BUFFER, Some(&indices), gl::STATIC_DRAW);
-
-    /*=================== Shaders =========================*/
-    let vert_code = r#"
-        attribute vec3 position;
-        uniform mat4 Pmatrix;
-        uniform mat4 Vmatrix;
-        uniform mat4 Mmatrix;
-        attribute vec3 color;
-        varying vec3 vColor;
-        attribute vec2 a_uv;
-        varying vec2 uv;
-
-        void main() {
-            gl_Position = Pmatrix*Vmatrix*Mmatrix*vec4(position, 1.);
-            vColor = color;
-            uv = a_uv;
-        }
-    "#;
-
-    let frag_code = r#"
-        precision mediump float;
-        varying vec3 vColor;
-        uniform sampler2D tex;
-        varying vec2 uv;
-
-        void main() {
-            gl_FragColor = texture2D(tex,uv);
-        }
-    "#;
-
-    let vert_shader = context.create_shader(gl::VERTEX_SHADER).unwrap();
-    context.shader_source(&vert_shader, vert_code);
-    context.compile_shader(&vert_shader);
-
-    let frag_shader = context.create_shader(gl::FRAGMENT_SHADER).unwrap();
-    context.shader_source(&frag_shader, frag_code);
-    context.compile_shader(&frag_shader);
-
-    let shader_program = context.create_program().unwrap();
-    context.attach_shader(&shader_program, &vert_shader);
-    context.attach_shader(&shader_program, &frag_shader);
-    context.link_program(&shader_program);
-
-    /* ====== Associating attributes to vertex shader =====*/
-    let p_matrix = context
-        .get_uniform_location(&shader_program, "Pmatrix")
-        .unwrap();
-    let v_matrix = context
-        .get_uniform_location(&shader_program, "Vmatrix")
-        .unwrap();
-    let m_matrix = context
-        .get_uniform_location(&shader_program, "Mmatrix")
-        .unwrap();
-    let m_matrix_test = context
-        .get_uniform_location(&shader_program, "Mmatrix")
-        .unwrap();
-    let _textur = context
-        .get_uniform_location(&shader_program, "tex")
-        .unwrap();
-
-    context.bind_buffer(gl::ARRAY_BUFFER, Some(&vertex_buffer));
-    let position = context.get_attrib_location(&shader_program, "position") as u32;
-    context.vertex_attrib_pointer(position, 3, gl::FLOAT, false, 0, 0);
-
-    // Position
-    context.enable_vertex_attrib_array(position);
-    context.bind_buffer(gl::ARRAY_BUFFER, Some(&color_buffer));
-    let color = context.get_attrib_location(&shader_program, "color") as u32;
-    context.vertex_attrib_pointer(color, 3, gl::FLOAT, false, 0, 0);
-
-    // Color
-    context.enable_vertex_attrib_array(color);
-
-    context.bind_buffer(gl::ARRAY_BUFFER, Some(&texture_coord_buffer));
-    let uv = context.get_attrib_location(&shader_program, "a_uv") as u32;
-    context.vertex_attrib_pointer(uv, 3, gl::FLOAT, false, 0, 0);
-    context.enable_vertex_attrib_array(uv);
-
-    context.use_program(Some(&shader_program));
-
     let mov_matrix = [
         1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 1., 1., 0., 20.,
     ];
@@ -251,39 +121,37 @@ pub fn init() {
     view_matrix[14] -= 20.; //zoom
 
     let url = "sprite.png";
-    let url2 = "sprite.png";
+    // let url2 = "sprite.png";
 
-    // let ref tex = context.create_texture();
-    // context.bind_texture(gl::TEXTURE_2D, tex.as_ref());
-
-    // let img = ImageElement::new();
-    // img.set_src(&url);
-
-    let (mut obj, context) = sprite::Sprite::new(context, url, m_matrix.clone());
-    let (obj2, context) = sprite::Sprite::new(context, url2, m_matrix.clone());
+    let (mut obj, context, shader_program) = sprite::Sprite::new(context, url);
+    //  let (obj2, context, shader_program) = sprite::Sprite::new(context, url2);
     let vec = units::Vector2D { x: 1., y: 1. };
     obj.set_position_sprite(vec);
 
+    let p_matrix = context
+        .get_uniform_location(&shader_program, "Pmatrix")
+        .unwrap();
+    let v_matrix = context
+        .get_uniform_location(&shader_program, "Vmatrix")
+        .unwrap();
+
+    context.use_program(Some(&shader_program));
+
     let state = Rc::new(RefCell::new(Engine {
-        mov_matrix,
         view_matrix,
         canvas,
         context,
         p_matrix,
         v_matrix,
-        m_matrix,
-        index_buffer,
         test_one: 1.,
         // img,
         // url,
         obj,
-        obj2,
+        // obj2,
     }));
 
     state.borrow_mut().init(state.clone());
     state.borrow_mut().update(state.clone());
-
-    // context
 }
 
 pub fn end() {
