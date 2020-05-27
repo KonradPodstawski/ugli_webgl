@@ -16,9 +16,12 @@ use stdweb::web::html_element::CanvasElement;
 use ugli_webgl::WebGL2RenderingContext as gl;
 use ugli_webgl::WebGLBuffer;
 
+use crate::shaders;
 use crate::units;
 use ugli_webgl::WebGLUniformLocation;
-mod sprite;
+pub mod animation;
+pub mod camera;
+pub mod sprite;
 
 macro_rules! enclose {
     ( ($( $x:ident ),*) $y:expr ) => {
@@ -30,15 +33,12 @@ macro_rules! enclose {
 }
 
 struct Engine {
-    view_matrix: [f32; 16],
     canvas: CanvasElement,
     context: gl,
-    p_matrix: WebGLUniformLocation,
-    v_matrix: WebGLUniformLocation,
-    test_one: f32,
+    state_camera: camera::Camera,
 
     obj: sprite::Sprite,
-    // obj2: sprite::Sprite,
+    obj2: sprite::Sprite,
 }
 
 trait BasicEngine<T> {
@@ -48,35 +48,27 @@ trait BasicEngine<T> {
 }
 
 impl BasicEngine<Rc<RefCell<Self>>> for Engine {
-    fn init(&mut self, _rc: Rc<RefCell<Self>>) {
-        self.context.enable(gl::BLEND);
-        self.context.blend_func(gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
-        self.context.clear_color(0.5, 0.5, 0.5, 0.9);
-    }
+    fn init(&mut self, _rc: Rc<RefCell<Self>>) {}
 
     fn update(&mut self, _rc: Rc<RefCell<Self>>) {
         let (w, h) = (self.canvas.width(), self.canvas.height());
-        let proj_matrix = get_projection(10., (w as f32) / (h as f32), 1., 200.);
+        self.context
+            .clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-        self.test_one += 0.05;
+        let a = (w as f32) / (h as f32);
+
+        self.state_camera
+            .config_projectcion(&self.context, 10., a, 1., 200.);
 
         self.context
             .viewport(w as i32 * -1, h as i32 * -1, w as i32 * 2, h as i32 * 2);
 
-        self.context
-            .clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        self.context
-            .uniform_matrix4fv(Some(&self.p_matrix), false, &proj_matrix[..], 0, 0);
-        self.context
-            .uniform_matrix4fv(Some(&self.v_matrix), false, &self.view_matrix[..], 0, 0);
+        self.state_camera.update(&self.context);
 
         self.obj.update(&self.context);
-        let vec = units::Vector2D {
-            x: 1.,
-            y: self.test_one,
-        };
-        self.obj.set_position_sprite(vec);
-        // self.obj2.update(&self.context);
+        let vec = units::Vector2D { x: 0., y: 0.05 };
+        self.obj.move_sprite(vec);
+        self.obj2.update(&self.context);
 
         window().request_animation_frame(move |_time| {
             _rc.borrow_mut().update(_rc.clone());
@@ -86,9 +78,7 @@ impl BasicEngine<Rc<RefCell<Self>>> for Engine {
     fn draw() {}
 }
 
-pub fn init() {
-    stdweb::initialize();
-
+pub fn create_ugli_window(color: units::Color) -> (CanvasElement, gl) {
     let canvas: CanvasElement = document()
         .query_selector("#canvas")
         .unwrap()
@@ -101,7 +91,8 @@ pub fn init() {
     canvas.set_width(canvas.offset_width() as u32);
     canvas.set_height(canvas.offset_height() as u32);
 
-    context.clear_color(1.0, 1.0, 0.0, 1.0);
+    let (red, green, blue, alfa) = color.get();
+    context.clear_color(red, green, blue, alfa);
     context.clear(gl::COLOR_BUFFER_BIT);
 
     window().add_event_listener(enclose!( (canvas) move |_: ResizeEvent| {
@@ -109,73 +100,75 @@ pub fn init() {
         canvas.set_height(canvas.offset_height() as u32);
     }));
 
-    let mov_matrix = [
-        1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 1., 1., 0., 20.,
-    ];
+    (canvas, context)
+}
+pub fn init() {
+    stdweb::initialize();
+}
 
-    let mut view_matrix = [
-        1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 1., 1.,
-    ];
+pub fn test() {
+    init();
 
-    // translating z
-    view_matrix[14] -= 20.; //zoom
+    let window_color = units::Color {
+        red: 1.,
+        green: 1.,
+        blue: 0.,
+        alfa: 1.,
+    };
+
+    let (canvas, context) = create_ugli_window(window_color);
+
+    let shader_program = shaders::create_texture_shaders(&context);
+
+    let mut state_camera = camera::Camera::init(&context, &shader_program);
+
+    state_camera.zoom(20.);
 
     let url = "sprite.png";
-    // let url2 = "sprite.png";
+    let _url2 = "sprite.png";
 
-    let (mut obj, context, shader_program) = sprite::Sprite::new(context, url);
-    //  let (obj2, context, shader_program) = sprite::Sprite::new(context, url2);
+    let (mut obj, context, shader_program) = sprite::Sprite::new(context, url, shader_program);
+    let (obj2, context, shader_program) = sprite::Sprite::new(context, _url2, shader_program);
+
     let vec = units::Vector2D { x: 1., y: 1. };
-    obj.set_position_sprite(vec);
 
-    let p_matrix = context
-        .get_uniform_location(&shader_program, "Pmatrix")
-        .unwrap();
-    let v_matrix = context
-        .get_uniform_location(&shader_program, "Vmatrix")
-        .unwrap();
+    obj.set_position_sprite(vec);
+    obj.set_scale_sprite(10.);
+
+    camera::matrix(&context, &shader_program);
 
     context.use_program(Some(&shader_program));
 
+    let color = units::Color {
+        red: 0.5,
+        green: 0.5,
+        blue: 0.5,
+        alfa: 0.9,
+    };
+    clear_color(&context, color);
+
     let state = Rc::new(RefCell::new(Engine {
-        view_matrix,
         canvas,
         context,
-        p_matrix,
-        v_matrix,
-        test_one: 1.,
-        // img,
-        // url,
+        state_camera,
         obj,
-        // obj2,
+        obj2,
     }));
 
     state.borrow_mut().init(state.clone());
     state.borrow_mut().update(state.clone());
+
+    stdweb::event_loop();
 }
 
 pub fn end() {
     stdweb::event_loop();
 }
 
-fn get_projection(angle: f32, a: f32, z_min: f32, z_max: f32) -> [f32; 16] {
-    let ang = (angle * 0.5).to_radians().tan();
-    return [
-        0.5 / ang,
-        0.,
-        0.,
-        0.,
-        0.,
-        0.5 * a / ang,
-        0.,
-        0.,
-        0.,
-        0.,
-        -(z_max + z_min) / (z_max - z_min),
-        -1.,
-        0.,
-        0.,
-        (-2. * z_max * z_min) / (z_max - z_min),
-        0.,
-    ];
+pub fn clear_color(context: &gl, color: units::Color) {
+    let (red, green, blue, alfa) = color.get();
+
+    context.enable(gl::BLEND);
+    context.blend_func(gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
+    context.clear_color(red, green, blue, alfa);
 }

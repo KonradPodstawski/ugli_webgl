@@ -9,10 +9,13 @@ pub mod matrix;
 pub mod shaders;
 pub mod units;
 
+pub mod app;
+
 fn main() {
-    engine::init();
+    engine::test();
+    //app::init();
 
     //Shaders::init_shader(_ctx, _canvas);
 
-    engine::end();
+    // engine::end();
 }

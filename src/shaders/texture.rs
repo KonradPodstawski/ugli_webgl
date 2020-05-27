@@ -1,3 +1,7 @@
+extern crate ugli_webgl;
+use crate::shaders;
+use ugli_webgl::WebGL2RenderingContext as gl;
+
 pub fn get_fragment() -> &'static str {
     let frag_code = r#"
         precision mediump float;
@@ -32,4 +36,41 @@ pub fn get_vertex() -> &'static str {
     "#;
 
     vert_code
+}
+
+pub fn create_texture_vertex_shader(context: &gl) -> ugli_webgl::WebGLShader {
+    let shader_id = context.create_shader(gl::VERTEX_SHADER).unwrap();
+    context.shader_source(&shader_id, shaders::texture::get_vertex());
+    context.compile_shader(&shader_id);
+
+    shader_id
+}
+
+pub fn create_texture_fragment_shader(context: &gl) -> ugli_webgl::WebGLShader {
+    let shader_id = context.create_shader(gl::FRAGMENT_SHADER).unwrap();
+    context.shader_source(&shader_id, shaders::texture::get_fragment());
+    context.compile_shader(&shader_id);
+
+    shader_id
+}
+
+pub fn shader_program(
+    vertex_shader: &ugli_webgl::WebGLShader,
+    fragment_shader: &ugli_webgl::WebGLShader,
+    context: &gl,
+) -> ugli_webgl::WebGLProgram {
+    let shader_program = context.create_program().unwrap();
+    context.attach_shader(&shader_program, &vertex_shader);
+    context.attach_shader(&shader_program, &fragment_shader);
+    context.link_program(&shader_program);
+
+    shader_program
+}
+
+pub fn create_texture_shaders(context: &gl) -> ugli_webgl::WebGLProgram {
+    let vert_id = shaders::texture::create_texture_vertex_shader(&context);
+    let frag_id = shaders::texture::create_texture_fragment_shader(&context);
+    let shader_id = shader_program(&vert_id, &frag_id, &context);
+
+    shader_id
 }
