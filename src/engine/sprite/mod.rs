@@ -13,6 +13,8 @@ use crate::units;
 pub struct Sprite {
     url: &'static str,
     img: ImageElement,
+    width: f32,
+    height: f32,
     vertex_buffer: Buffer,
     color_buffer: Buffer,
     index_buffer: Buffer,
@@ -25,6 +27,8 @@ impl Sprite {
         context: gl,
         url: &'static str,
         shader_program: ugli_webgl::WebGLProgram,
+        width: f32,
+        height: f32,
     ) -> (Self, gl, ugli_webgl::WebGLProgram) {
         let (context, vertex_buffer, color_buffer, index_buffer) =
             bind_buffers(context, &shader_program);
@@ -45,6 +49,8 @@ impl Sprite {
             Sprite {
                 url,
                 img,
+                width,
+                height,
                 vertex_buffer,
                 color_buffer,
                 index_buffer,
@@ -91,6 +97,22 @@ impl Sprite {
 
     pub fn set_scale_sprite(&mut self, scale: f32) {
         self.mov_matrix[15] = scale;
+    }
+
+    pub fn get_width(&self) -> f32 {
+        self.width
+    }
+
+    pub fn get_height(&self) -> f32 {
+        self.height
+    }
+
+    pub fn get_x(&self) -> f32 {
+        self.mov_matrix[12]
+    }
+
+    pub fn get_y(&self) -> f32 {
+        self.mov_matrix[13]
     }
 }
 

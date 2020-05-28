@@ -28,12 +28,11 @@ pub fn get_vertex() -> &'static str {
         attribute vec2 a_uv;
         varying vec2 uv;
 
-        uniform vec2 u_frame;
 
         void main() {
             gl_Position = Pmatrix*Vmatrix*Mmatrix*vec4(position, 1.);
             vColor = color;
-            uv = a_uv + u_frame;
+            uv = a_uv;
         }
     "#;
 

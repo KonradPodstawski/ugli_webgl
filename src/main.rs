@@ -12,8 +12,8 @@ pub mod units;
 pub mod app;
 
 fn main() {
-    engine::test();
-    //app::init();
+    //engine::test();
+    app::init();
 
     //Shaders::init_shader(_ctx, _canvas);
 

@@ -1,5 +1,5 @@
 use ugli_webgl::WebGL2RenderingContext as gl;
-use ugli_webgl::WebGLUniformLocation;
+
 #[derive(Debug)]
 pub struct Camera {
     view_matrix: [f32; 16],
