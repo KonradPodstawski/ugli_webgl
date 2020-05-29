@@ -24,6 +24,7 @@ use crate::engine;
 struct Applicatiom {
     canvas: CanvasElement,
     context: gl,
+
     state_camera: camera::Camera,
 
     left_score: i32,
@@ -57,10 +58,10 @@ impl Applicatiom {
         window().add_event_listener(enclose!((player1) move |_event: KeyDownEvent| {
 
             if _event.code() == "KeyS" {
-                *player1.borrow_mut() -= 0.25 ;
+                *player1.borrow_mut() -= 0.4 ;
             }
             if _event.code() == "KeyW" {
-                *player1.borrow_mut() += 0.25 ;
+                *player1.borrow_mut() += 0.4 ;
             }
 
         }));
@@ -71,11 +72,12 @@ impl Applicatiom {
 
         window().add_event_listener(enclose!((player2) move |_event: KeyDownEvent| {
             if _event.code() == "ArrowUp" {
-                *player2.borrow_mut() += 0.25 ;
+                *player2.borrow_mut() += 0.4 ;
             }
             if _event.code() == "ArrowDown" {
-                *player2.borrow_mut() -= 0.25 ;
+                *player2.borrow_mut() -= 0.4 ;
             }
+
         }));
     }
 
@@ -96,6 +98,7 @@ impl Applicatiom {
 
         engine::range(&mut (*self.axis_y_one.borrow_mut()));
         engine::range(&mut (*self.axis_y_two.borrow_mut()));
+
         self.player_1.update(&self.context);
         let vec: units::Vector2D<f32> = units::Vector2D {
             x: 1.,
@@ -103,7 +106,6 @@ impl Applicatiom {
         };
         self.player_1.set_position_sprite(vec);
 
-        // Prawa Paletka
         self.player_2.update(&self.context);
         let vec2: units::Vector2D<f32> = units::Vector2D {
             x: 32.,
@@ -116,8 +118,12 @@ impl Applicatiom {
         self.ball_x += self.velocity.x;
         if self.ball_x > 32. - self.ball.get_width() {
             self.velocity.x = -self.velocity.x;
-            if self.ball_y < self.player_1.get_y() || self.ball_y > self.player_1.get_y() + 7. {
+            if self.ball_y - 1.4 > self.player_1.get_y()
+                || self.ball_y < self.player_1.get_y() - 1.9
+            {
                 self.right_score += 1;
+                self.ball_y = 9.;
+                self.ball_x = 16.;
 
                 console!(
                     log,
@@ -130,8 +136,12 @@ impl Applicatiom {
         }
         if self.ball_x < 1. + self.ball.get_width() {
             self.velocity.x = -self.velocity.x;
-            if self.ball_y < self.player_2.get_y() || self.ball_y > self.player_2.get_y() + 7. {
+            if self.ball_y - 1.4 > self.player_2.get_y()
+                || self.ball_y < self.player_2.get_y() - 1.9
+            {
                 self.left_score += 1;
+                self.ball_y = 9.;
+                self.ball_x = 16.;
 
                 console!(
                     log,
@@ -232,6 +242,7 @@ pub fn init() {
     let state = Rc::new(RefCell::new(Applicatiom {
         canvas,
         context,
+
         state_camera,
 
         left_score: 0,
