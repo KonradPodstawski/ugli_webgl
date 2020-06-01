@@ -7,7 +7,7 @@ use stdweb::web::html_element::ImageElement;
 use ugli_webgl::WebGL2RenderingContext as gl;
 use ugli_webgl::WebGLBuffer as Buffer;
 
-use crate::units;
+use crate::engine::units;
 
 #[derive(Debug)]
 pub struct Sprite {
@@ -76,7 +76,6 @@ impl Sprite {
             &self.img,
         );
 
-        context.generate_mipmap(gl::TEXTURE_2D);
         context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
         context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
         context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);

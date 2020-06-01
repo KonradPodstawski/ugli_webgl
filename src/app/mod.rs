@@ -7,8 +7,15 @@ use stdweb::console;
 use stdweb::web::{window, IEventTarget};
 
 use stdweb::web::event::IKeyboardEvent;
+use stdweb::web::event::ITouchEvent;
 use stdweb::web::event::KeyDownEvent;
 use stdweb::web::event::KeyUpEvent;
+use stdweb::web::event::TouchCancel;
+use stdweb::web::event::TouchEnd;
+use stdweb::web::event::TouchEvent;
+use stdweb::web::event::TouchStart;
+use stdweb::web::Document;
+use stdweb::web::Touch;
 
 use stdweb::web::html_element::CanvasElement;
 
@@ -17,7 +24,7 @@ use ugli_webgl::WebGL2RenderingContext as gl;
 use crate::engine::camera;
 use crate::engine::shaders;
 use crate::engine::sprite;
-use crate::units;
+use crate::engine::units;
 
 use crate::engine;
 
@@ -82,6 +89,42 @@ impl Applicatiom {
             }
 
         }));
+
+        let cnavas_copy = self.canvas.clone();
+        let half_width_canvas = cnavas_copy.width() as f64 / 2.;
+        let half_height_canvas = cnavas_copy.height() as f64 / 2.;
+
+        window().add_event_listener(
+            enclose!((half_width_canvas,half_height_canvas, top, down) move |_event: TouchStart| {
+                let tab = _event.touches();
+
+                if tab[0].client_y() > half_height_canvas {
+                    *top.borrow_mut() = true ;
+                }
+                else if tab[0].client_y() < half_height_canvas{
+                    *down.borrow_mut() = true ;
+                }
+
+            }),
+        );
+
+        window().add_event_listener(
+            enclose!((top, down) move |_event: TouchEnd| {
+                    *top.borrow_mut() = false ;
+                    *down.borrow_mut() = false ;
+
+            }),
+        );
+
+        // window().add_event_listener(|_event: Touch| {
+
+        //     // if _event.code() == "KeyS" {
+        //     //     *top.borrow_mut() = true ;
+        //     // }
+        //     // if _event.code() == "KeyW" {
+        //     //     *down.borrow_mut() = true ;
+        //     // }
+        // });
     }
 
     fn player_two_update(&mut self, _rc: Rc<RefCell<Self>>) {
