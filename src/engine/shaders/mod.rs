@@ -1,5 +1,5 @@
 extern crate ugli_webgl;
-use crate::shaders;
+use crate::engine::shaders;
 use ugli_webgl::WebGL2RenderingContext as gl;
 
 pub fn get_fragment() -> &'static str {

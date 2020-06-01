@@ -15,8 +15,8 @@ use stdweb::web::html_element::CanvasElement;
 use ugli_webgl::WebGL2RenderingContext as gl;
 
 use crate::engine::camera;
+use crate::engine::shaders;
 use crate::engine::sprite;
-use crate::shaders;
 use crate::units;
 
 use crate::engine;
@@ -92,11 +92,9 @@ impl Applicatiom {
         } else if *player2.borrow_mut() < self.ball_y {
             *player2.borrow_mut() += 0.5;
         }
-
     }
 
     fn update(&mut self, _rc: Rc<RefCell<Self>>) {
-
         //====================================== Update Window  ======================================//
         let (w, h) = (self.canvas.width(), self.canvas.height());
         self.context
@@ -142,14 +140,13 @@ impl Applicatiom {
         };
         self.player_1.set_position_sprite(vec);
 
-
         let vec2: units::Vector2D<f32> = units::Vector2D {
             x: 32.,
             y: *self.axis_y_two.borrow_mut(),
         };
         self.player_2.set_position_sprite(vec2);
 
-    //======================================== Ball update position ===================================//
+        //======================================== Ball update position ===================================//
 
         self.ball.update(&self.context);
 

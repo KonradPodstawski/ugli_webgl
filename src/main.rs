@@ -5,7 +5,6 @@ extern crate stdweb;
 extern crate stdweb_derive;
 
 mod engine;
-pub mod shaders;
 pub mod units;
 
 pub mod app;
