@@ -321,7 +321,7 @@ pub fn clear_color(context: &gl, color: units::Color) {
 }
 
 pub fn range(y: &mut f32) {
-    if *y >= 21. {
+    if *y >= 16. {
         *y -= 0.5;
     }
     if *y <= 1. {

@@ -8,6 +8,7 @@ use stdweb::web::{window, IEventTarget};
 
 use stdweb::web::event::IKeyboardEvent;
 use stdweb::web::event::KeyDownEvent;
+use stdweb::web::event::KeyUpEvent;
 
 use stdweb::web::html_element::CanvasElement;
 
@@ -35,6 +36,10 @@ struct Applicatiom {
     ball: sprite::Sprite,
 
     velocity: units::Vector2D<f32>,
+
+    down_pressed: Rc<RefCell<bool>>,
+    top_pressed: Rc<RefCell<bool>>,
+
     ball_x: f32,
     ball_y: f32,
 
@@ -53,15 +58,27 @@ macro_rules! enclose {
 
 impl Applicatiom {
     fn player_one_update(&mut self, _rc: Rc<RefCell<Self>>) {
-        let player1 = Rc::clone(&self.axis_y_one);
+        let top = Rc::clone(&self.top_pressed);
+        let down = Rc::clone(&self.down_pressed);
 
-        window().add_event_listener(enclose!((player1) move |_event: KeyDownEvent| {
+        window().add_event_listener(enclose!((top,down) move |_event: KeyDownEvent| {
 
             if _event.code() == "KeyS" {
-                *player1.borrow_mut() -= 0.4 ;
+                *top.borrow_mut() = true ;
             }
             if _event.code() == "KeyW" {
-                *player1.borrow_mut() += 0.4 ;
+                *down.borrow_mut() = true ;
+            }
+
+        }));
+
+        window().add_event_listener(enclose!((top,down) move |_event: KeyUpEvent| {
+
+            if _event.code() == "KeyS" {
+                *top.borrow_mut() = false;
+            }
+            if _event.code() == "KeyW" {
+                *down.borrow_mut() = false;
             }
 
         }));
@@ -70,78 +87,84 @@ impl Applicatiom {
     fn player_two_update(&mut self, _rc: Rc<RefCell<Self>>) {
         let player2 = Rc::clone(&self.axis_y_two);
 
-        window().add_event_listener(enclose!((player2) move |_event: KeyDownEvent| {
-            if _event.code() == "ArrowUp" {
-                *player2.borrow_mut() += 0.4 ;
-            }
-            if _event.code() == "ArrowDown" {
-                *player2.borrow_mut() -= 0.4 ;
-            }
+        if *player2.borrow_mut() > self.ball_y {
+            *player2.borrow_mut() -= 0.5;
+        } else if *player2.borrow_mut() < self.ball_y {
+            *player2.borrow_mut() += 0.5;
+        }
 
-        }));
     }
 
     fn update(&mut self, _rc: Rc<RefCell<Self>>) {
+
+        //====================================== Update Window  ======================================//
         let (w, h) = (self.canvas.width(), self.canvas.height());
         self.context
             .clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-        let a = (w as f32) / (h as f32);
-
         self.state_camera
-            .config_projectcion(&self.context, 10., a, 1., 200.);
+            .config_projectcion(&self.context, 10., (w as f32) / (h as f32), 1., 200.);
 
         self.context
             .viewport(w as i32 * -1, h as i32 * -1, w as i32 * 2, h as i32 * 2);
 
         self.state_camera.update(&self.context);
 
+        //========================================== Enemy ===========================================//
+
+        if *self.axis_y_two.borrow_mut() > self.ball_y {
+            *self.axis_y_two.borrow_mut() -= 0.12;
+        } else if *self.axis_y_two.borrow_mut() < self.ball_y {
+            *self.axis_y_two.borrow_mut() += 0.12;
+        }
+
+        self.player_1.update(&self.context);
+        self.player_2.update(&self.context);
+
+        //==================================== Player update position =================================//
+
+        if *self.top_pressed.borrow_mut() {
+            *self.axis_y_one.borrow_mut() -= 0.25;
+        } else if *self.down_pressed.borrow_mut() {
+            *self.axis_y_one.borrow_mut() += 0.25;
+        }
+
+        //======================================== Add range area =====================================//
+
         engine::range(&mut (*self.axis_y_one.borrow_mut()));
         engine::range(&mut (*self.axis_y_two.borrow_mut()));
 
-        self.player_1.update(&self.context);
+        //====================================== Player set position ==================================//
+
         let vec: units::Vector2D<f32> = units::Vector2D {
             x: 1.,
             y: *self.axis_y_one.borrow_mut(),
         };
         self.player_1.set_position_sprite(vec);
 
-        self.player_2.update(&self.context);
+
         let vec2: units::Vector2D<f32> = units::Vector2D {
             x: 32.,
             y: *self.axis_y_two.borrow_mut(),
         };
         self.player_2.set_position_sprite(vec2);
 
+    //======================================== Ball update position ===================================//
+
         self.ball.update(&self.context);
 
         self.ball_x += self.velocity.x;
         if self.ball_x > 32. - self.ball.get_width() {
             self.velocity.x = -self.velocity.x;
-            if self.ball_y - 1.4 > self.player_1.get_y()
-                || self.ball_y < self.player_1.get_y() - 1.9
+            if self.ball_y - 1.4 > self.player_2.get_y()
+                || self.ball_y - 0.1 < self.player_2.get_y() - 1.6
             {
                 self.right_score += 1;
                 self.ball_y = 9.;
                 self.ball_x = 16.;
 
-                console!(
-                    log,
-                    "LEFT SCORE: ",
-                    self.left_score,
-                    "RIGHT SCORE: ",
-                    self.right_score
-                );
-            }
-        }
-        if self.ball_x < 1. + self.ball.get_width() {
-            self.velocity.x = -self.velocity.x;
-            if self.ball_y - 1.4 > self.player_2.get_y()
-                || self.ball_y < self.player_2.get_y() - 1.9
-            {
-                self.left_score += 1;
-                self.ball_y = 9.;
-                self.ball_x = 16.;
+                self.velocity.x = 0.1;
+                self.velocity.y = 0.1;
 
                 console!(
                     log,
@@ -150,6 +173,33 @@ impl Applicatiom {
                     "RIGHT SCORE: ",
                     self.right_score
                 );
+            } else {
+                self.velocity.x -= 0.025;
+                self.velocity.y -= 0.025;
+            }
+        }
+        if self.ball_x < 1. + self.ball.get_width() {
+            self.velocity.x = -self.velocity.x;
+            if self.ball_y - 1.4 > self.player_1.get_y()
+                || self.ball_y - 0.1 < self.player_1.get_y() - 1.6
+            {
+                self.left_score += 1;
+                self.ball_y = 9.;
+                self.ball_x = 16.;
+
+                self.velocity.x = 0.1;
+                self.velocity.y = 0.1;
+
+                console!(
+                    log,
+                    "LEFT SCORE: ",
+                    self.left_score,
+                    "RIGHT SCORE: ",
+                    self.right_score
+                );
+            } else {
+                self.velocity.x += 0.025;
+                self.velocity.y += 0.025;
             }
         }
 
@@ -158,20 +208,28 @@ impl Applicatiom {
             self.velocity.y = -self.velocity.y;
         }
 
+        //====================================== Player set position ==================================//
+
         let vec3: units::Vector2D<f32> = units::Vector2D {
             x: self.ball_x,
             y: self.ball_y,
         };
         self.ball.set_position_sprite(vec3);
 
+        //====================================== Animation callback ===================================//
+
         window().request_animation_frame(move |_time| {
             _rc.borrow_mut().update(_rc.clone());
         });
+
+        //=============================================================================================//
     }
 }
 
 pub fn init() {
     engine::init();
+
+    //========================================== Set clear color ======================================//
 
     let window_color = units::Color {
         red: 1.,
@@ -180,8 +238,9 @@ pub fn init() {
         alfa: 1.,
     };
 
-    let (canvas, context) = engine::create_ugli_window(window_color);
+    //================================== Create obligatory parameters ==================================//
 
+    let (canvas, context) = engine::create_ugli_window(window_color);
     let shader_program = shaders::create_texture_shaders(&context);
 
     let mut state_camera = camera::Camera::init(&context, &shader_program);
@@ -215,7 +274,7 @@ pub fn init() {
         y: (9) as f32,
     };
 
-    let velocity = units::Vector2D { x: 0.1, y: 0.1 };
+    let velocity = units::Vector2D { x: 0.15, y: 0.15 };
 
     player_1.set_position_sprite(init_position_1);
     player_1.set_scale_sprite(10.);
@@ -236,6 +295,9 @@ pub fn init() {
     };
     engine::clear_color(&context, color);
 
+    let down_pressed = Rc::new(RefCell::new(false));
+    let top_pressed = Rc::new(RefCell::new(false));
+
     let axis_y_one = Rc::new(RefCell::new(9.));
     let axis_y_two = Rc::new(RefCell::new(9.));
 
@@ -253,6 +315,9 @@ pub fn init() {
         ball,
 
         velocity,
+
+        down_pressed,
+        top_pressed,
 
         ball_x: 18.,
         ball_y: 15.,
