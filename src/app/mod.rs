@@ -4,20 +4,18 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use stdweb::console;
-use stdweb::web::{window, IEventTarget};
+
+use stdweb::web::{document, window, IEventTarget, IParentNode};
 
 use stdweb::web::event::IKeyboardEvent;
 use stdweb::web::event::ITouchEvent;
 use stdweb::web::event::KeyDownEvent;
 use stdweb::web::event::KeyUpEvent;
-use stdweb::web::event::TouchCancel;
 use stdweb::web::event::TouchEnd;
-use stdweb::web::event::TouchEvent;
 use stdweb::web::event::TouchStart;
-use stdweb::web::Document;
-use stdweb::web::Touch;
+use stdweb::web::Element;
 
-use stdweb::web::html_element::CanvasElement;
+use stdweb::web::{html_element::CanvasElement, INode};
 
 use ugli_webgl::WebGL2RenderingContext as gl;
 
@@ -38,10 +36,12 @@ struct Applicatiom {
     left_score: i32,
     right_score: i32,
 
+    general_score: Element,
+
     player_1: sprite::Sprite,
     player_2: sprite::Sprite,
-    ball: sprite::Sprite,
 
+    ball: sprite::Sprite,
     velocity: units::Vector2D<f32>,
 
     down_pressed: Rc<RefCell<bool>>,
@@ -91,40 +91,26 @@ impl Applicatiom {
         }));
 
         let cnavas_copy = self.canvas.clone();
-        let half_width_canvas = cnavas_copy.width() as f64 / 2.;
         let half_height_canvas = cnavas_copy.height() as f64 / 2.;
+        //let half_width_canvas = cnavas_copy.width() as f64 / 2.;
 
-        window().add_event_listener(
-            enclose!((half_width_canvas,half_height_canvas, top, down) move |_event: TouchStart| {
-                let tab = _event.touches();
+        window().add_event_listener(enclose!((top, down) move |_event: TouchStart| {
+            let tab = _event.touches();
 
-                if tab[0].client_y() > half_height_canvas {
-                    *top.borrow_mut() = true ;
-                }
-                else if tab[0].client_y() < half_height_canvas{
-                    *down.borrow_mut() = true ;
-                }
+            if tab[0].client_x() > half_height_canvas {
+                *top.borrow_mut() = true ;
+            }
+            else if tab[0].client_x() < half_height_canvas{
+                *down.borrow_mut() = true ;
+            }
 
-            }),
-        );
+        }));
 
-        window().add_event_listener(
-            enclose!((top, down) move |_event: TouchEnd| {
-                    *top.borrow_mut() = false ;
-                    *down.borrow_mut() = false ;
+        window().add_event_listener(enclose!((top, down) move |_event: TouchEnd| {
+                *top.borrow_mut() = false ;
+                *down.borrow_mut() = false ;
 
-            }),
-        );
-
-        // window().add_event_listener(|_event: Touch| {
-
-        //     // if _event.code() == "KeyS" {
-        //     //     *top.borrow_mut() = true ;
-        //     // }
-        //     // if _event.code() == "KeyW" {
-        //     //     *down.borrow_mut() = true ;
-        //     // }
-        // });
+        }));
     }
 
     fn player_two_update(&mut self, _rc: Rc<RefCell<Self>>) {
@@ -154,9 +140,9 @@ impl Applicatiom {
         //========================================== Enemy ===========================================//
 
         if *self.axis_y_two.borrow_mut() > self.ball_y {
-            *self.axis_y_two.borrow_mut() -= 0.12;
+            *self.axis_y_two.borrow_mut() -= 0.08;
         } else if *self.axis_y_two.borrow_mut() < self.ball_y {
-            *self.axis_y_two.borrow_mut() += 0.12;
+            *self.axis_y_two.borrow_mut() += 0.08;
         }
 
         self.player_1.update(&self.context);
@@ -165,9 +151,9 @@ impl Applicatiom {
         //==================================== Player update position =================================//
 
         if *self.top_pressed.borrow_mut() {
-            *self.axis_y_one.borrow_mut() -= 0.25;
+            *self.axis_y_one.borrow_mut() -= 0.15;
         } else if *self.down_pressed.borrow_mut() {
-            *self.axis_y_one.borrow_mut() += 0.25;
+            *self.axis_y_one.borrow_mut() += 0.15;
         }
 
         //======================================== Add range area =====================================//
@@ -199,12 +185,13 @@ impl Applicatiom {
             if self.ball_y - 1.4 > self.player_2.get_y()
                 || self.ball_y - 0.1 < self.player_2.get_y() - 1.6
             {
-                self.right_score += 1;
+                self.left_score += 1;
+                update_score(&self.left_score, &self.right_score, &self.general_score);
                 self.ball_y = 9.;
                 self.ball_x = 16.;
 
-                self.velocity.x = 0.1;
-                self.velocity.y = 0.1;
+                self.velocity.x = -0.1;
+                self.velocity.y = -0.1;
 
                 console!(
                     log,
@@ -214,8 +201,8 @@ impl Applicatiom {
                     self.right_score
                 );
             } else {
-                self.velocity.x -= 0.025;
-                self.velocity.y -= 0.025;
+                self.velocity.x -= 0.015;
+                self.velocity.y -= 0.015;
             }
         }
         if self.ball_x < 1. + self.ball.get_width() {
@@ -223,7 +210,8 @@ impl Applicatiom {
             if self.ball_y - 1.4 > self.player_1.get_y()
                 || self.ball_y - 0.1 < self.player_1.get_y() - 1.6
             {
-                self.left_score += 1;
+                self.right_score += 1;
+                update_score(&self.left_score, &self.right_score, &self.general_score);
                 self.ball_y = 9.;
                 self.ball_x = 16.;
 
@@ -238,8 +226,8 @@ impl Applicatiom {
                     self.right_score
                 );
             } else {
-                self.velocity.x += 0.025;
-                self.velocity.y += 0.025;
+                self.velocity.x += 0.015;
+                self.velocity.y += 0.015;
             }
         }
 
@@ -314,7 +302,7 @@ pub fn init() {
         y: (9) as f32,
     };
 
-    let velocity = units::Vector2D { x: 0.15, y: 0.15 };
+    let velocity = units::Vector2D { x: 0.10, y: 0.10 };
 
     player_1.set_position_sprite(init_position_1);
     player_1.set_scale_sprite(10.);
@@ -341,6 +329,8 @@ pub fn init() {
     let axis_y_one = Rc::new(RefCell::new(9.));
     let axis_y_two = Rc::new(RefCell::new(9.));
 
+    let general_score = document().query_selector("h2").unwrap().unwrap();
+
     let state = Rc::new(RefCell::new(Applicatiom {
         canvas,
         context,
@@ -350,10 +340,12 @@ pub fn init() {
         left_score: 0,
         right_score: 0,
 
+        general_score,
+
         player_1,
         player_2,
-        ball,
 
+        ball,
         velocity,
 
         down_pressed,
@@ -371,4 +363,15 @@ pub fn init() {
     state.borrow_mut().player_one_update(state.clone());
 
     engine::end();
+}
+
+fn update_score(left_score: &i32, right_score: &i32, general_score: &Element) {
+    let left_score_string = left_score.to_string();
+    let right_score_string = right_score.to_string();
+    let left = " LEFT PLAYER: ".to_string();
+    let right = " RIGHT PLAYER: ".to_string();
+
+    let _score = left + &left_score_string + &right + &right_score_string;
+
+    general_score.set_text_content(&_score);
 }
