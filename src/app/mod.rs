@@ -125,6 +125,7 @@ impl Applicatiom {
 
     fn update(&mut self, _rc: Rc<RefCell<Self>>) {
         //====================================== Update Window  ======================================//
+
         let (w, h) = (self.canvas.width(), self.canvas.height());
         self.context
             .clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
