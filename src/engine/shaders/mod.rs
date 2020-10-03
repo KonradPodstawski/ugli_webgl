@@ -3,7 +3,7 @@ use crate::engine::shaders;
 use ugli_webgl::WebGL2RenderingContext as gl;
 
 pub fn get_fragment() -> &'static str {
-    let frag_code = r#"
+    r#"
         precision mediump float;
         varying vec3 vColor;
         uniform sampler2D tex;
@@ -12,13 +12,11 @@ pub fn get_fragment() -> &'static str {
         void main() {
             gl_FragColor = texture2D(tex,uv);
         }
-    "#;
-
-    frag_code
+    "#
 }
 
 pub fn get_vertex() -> &'static str {
-    let vert_code = r#"
+    r#"
         attribute vec3 position;
         uniform mat4 Pmatrix;
         uniform mat4 Vmatrix;
@@ -34,9 +32,7 @@ pub fn get_vertex() -> &'static str {
             vColor = color;
             uv = a_uv;
         }
-    "#;
-
-    vert_code
+    "#
 }
 
 pub fn create_texture_vertex_shader(context: &gl) -> ugli_webgl::WebGLShader {
