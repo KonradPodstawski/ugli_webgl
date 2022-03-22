@@ -138,7 +138,7 @@ impl Applicatiom {
 
         self.state_camera.update(&self.context);
 
-        //========================================== Enemy ===========================================//
+        // Enemy 
 
         if *self.axis_y_two.borrow_mut() > self.ball_y {
             *self.axis_y_two.borrow_mut() -= 0.08;
@@ -149,7 +149,7 @@ impl Applicatiom {
         self.player_1.update(&self.context);
         self.player_2.update(&self.context);
 
-        //==================================== Player update position =================================//
+        // Player update position
 
         if *self.top_pressed.borrow_mut() {
             *self.axis_y_one.borrow_mut() -= 0.15;
@@ -157,12 +157,12 @@ impl Applicatiom {
             *self.axis_y_one.borrow_mut() += 0.15;
         }
 
-        //======================================== Add range area =====================================//
+        // Add range area 
 
         engine::range(&mut (*self.axis_y_one.borrow_mut()));
         engine::range(&mut (*self.axis_y_two.borrow_mut()));
 
-        //====================================== Player set position ==================================//
+        // Player set position
 
         let vec: units::Vector2D<f32> = units::Vector2D {
             x: 1.,
@@ -176,7 +176,7 @@ impl Applicatiom {
         };
         self.player_2.set_position_sprite(vec2);
 
-        //======================================== Ball update position ===================================//
+        // Ball update position 
 
         self.ball.update(&self.context);
 
@@ -237,7 +237,7 @@ impl Applicatiom {
             self.velocity.y = -self.velocity.y;
         }
 
-        //====================================== Player set position ==================================//
+        // Player set position
 
         let vec3: units::Vector2D<f32> = units::Vector2D {
             x: self.ball_x,
@@ -245,20 +245,20 @@ impl Applicatiom {
         };
         self.ball.set_position_sprite(vec3);
 
-        //====================================== Animation callback ===================================//
+        // Animation callback
 
         window().request_animation_frame(move |_time| {
             _rc.borrow_mut().update(_rc.clone());
         });
 
-        //=============================================================================================//
+        //
     }
 }
 
 pub fn init() {
     engine::init();
 
-    //========================================== Set clear color ======================================//
+    // Set clear color
 
     let window_color = units::Color {
         red: 1.,
@@ -267,7 +267,7 @@ pub fn init() {
         alfa: 1.,
     };
 
-    //================================== Create obligatory parameters ==================================//
+    // Create obligatory parameters
 
     let (canvas, context) = engine::create_ugli_window(window_color);
     let shader_program = shaders::create_texture_shaders(&context);
