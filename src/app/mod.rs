@@ -124,7 +124,7 @@ impl Applicatiom {
     }
 
     fn update(&mut self, _rc: Rc<RefCell<Self>>) {
-        //====================================== Update Window  ======================================//
+        // Update Window
 
         let (w, h) = (self.canvas.width(), self.canvas.height());
         self.context

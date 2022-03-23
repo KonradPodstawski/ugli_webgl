@@ -152,21 +152,23 @@ fn bind_buffers(
     context.buffer_data_1(gl::ELEMENT_ARRAY_BUFFER, Some(&indices), gl::STATIC_DRAW);
 
     context.bind_buffer(gl::ARRAY_BUFFER, Some(&vertex_buffer));
-    let position = context.get_attrib_location(&shader_program, "position") as u32;
-    context.vertex_attrib_pointer(position, 3, gl::FLOAT, false, 0, 0);
-    context.enable_vertex_attrib_array(position);
+    let context = set_attrib(&shader_program, context, "position");
 
     context.bind_buffer(gl::ARRAY_BUFFER, Some(&color_buffer));
-    let color = context.get_attrib_location(&shader_program, "color") as u32;
-    context.vertex_attrib_pointer(color, 3, gl::FLOAT, false, 0, 0);
-    context.enable_vertex_attrib_array(color);
+    let context = set_attrib(&shader_program, context, "color");
 
     context.bind_buffer(gl::ARRAY_BUFFER, Some(&texture_coord_buffer));
-    let uv = context.get_attrib_location(&shader_program, "a_uv") as u32;
-    context.vertex_attrib_pointer(uv, 3, gl::FLOAT, false, 0, 0);
-    context.enable_vertex_attrib_array(uv);
+    let context = set_attrib(&shader_program, context, "a_uv");
 
     (context, vertex_buffer, color_buffer, index_buffer)
+}
+
+fn set_attrib(shader_program: &ugli_webgl::WebGLProgram, context: gl, locations_name: &str) -> gl {
+    let index = context.get_attrib_location(&shader_program, locations_name) as u32;
+    context.vertex_attrib_pointer(index, 3, gl::FLOAT, false, 0, 0);
+    context.enable_vertex_attrib_array(index);
+
+    context
 }
 
 fn init_matrix(
