@@ -6,9 +6,7 @@ edition = "2018"
 
 [dependencies]
 ugli-webgl = "0.1.0"
-stdweb = "0.4.20"
-stdweb-derive= "0.5.3"
-serde = "1.0.135"
-serde_derive = "1.0.135"
-futures = "0.3.19"
-
+stdweb = "0.4.0"
+stdweb-derive= "0.4.0"
+serde = "0.8.4"
+serde_derive = "0.8.4"
